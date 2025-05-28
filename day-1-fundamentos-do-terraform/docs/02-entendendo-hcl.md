@@ -1,6 +1,6 @@
 HCL é o formato padrão que será usado/lido pelo terraform.
 Dentro de um arquivo HCL temos dois elementos muito importantes:
-- Blocos
+- **Blocos**
     - Blocos são unidades de configuração que definem algum tipo de recursos, configuração, ou estrutura. Começam com um **tipo**, seguido por argumentos opcionais e um **corpo** delimitado por `{}`;
         ```python
         resource "aws_instance" "example" {
@@ -20,12 +20,12 @@ Dentro de um arquivo HCL temos dois elementos muito importantes:
             - `provider`: define o provedor;
             - `variable`: declara variáveis reutilizáveis;
             - `output`: exibe valores após a aplicação;
-- Argumentos
+- **Argumentos**
     - É tudo que está dentro de um bloco, geralmente é especificado em chave/valor.
     - `ami = 'abc123'`
 
 Outro elemento importante que vive dentro dos arquivos HCLs:
-- Identificadores
+- **Identificadores**
     - Forma que podemos utilizar para identificar os recursos.
     - Imagine estarmos utilizando o bloco `data` para fazer a coleta de alguma informação, que tem como parâmetros `'aws_ami' 'ubuntu'`, posso utilizar a seguinte estrutura para coletar um retorno do data:
         - `data.aws_ami.ubuntu.id`
