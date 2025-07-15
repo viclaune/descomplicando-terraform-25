@@ -1,0 +1,1 @@
+image_id = "a imagem que eu quero"

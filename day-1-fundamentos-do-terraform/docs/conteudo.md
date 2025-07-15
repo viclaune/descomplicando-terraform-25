@@ -1,18 +1,19 @@
 # Conhecendo o Terraform
-Terraform é um binário que carrega o arquivo de formato HCL, neste escrevemos o que desejamos configurar. O terraform então se conecta com a API da cloud e a partir daí ele passa comandos de acordo com o que está no arquivo descritivo (HCL).
+Terraform é um binário que carrega o arquivo de formato HCL, neste escrevemos o que desejamos configurar. O Terraform então se conecta com a API da cloud e a partir daí ele passa comandos de acordo com o que está no arquivo descritivo (o próprio HCL).
 
-O `state file` é um arquivo gerado pelo terraform após ele criar o que foi passado no arquivo descritivo (HCL). Ele armazena o último estado da arquitetura criada com o terraform, e utiliza ele para comparar a arquitetura quando se depara com outro arquivo HCL, para saber se ele deve criar/alterar/deletar recursos na cloud.
+O state file é um arquivo gerado pelo Terraform após ele criar o que foi passado no arquivo descrito. Este armazena o último estado da arquitetura criada com o Terraform e utiliza-o para comparar a arquitetura existente com um novo arquivo descritivo para saber se ele deve criar/alterar/deletar recursos na cloud.
 
-
+```markdown
 Documentação do terraform:
 https://developer.hashicorp.com/terraform/docs
+```
 
 # Entendendo o HCL
 HCL é o formato padrão que será usado/lido pelo terraform.
 Dentro de um arquivo HCL temos dois elementos muito importantes:
 - **Blocos**
     - Blocos são unidades de configuração que definem algum tipo de recursos, configuração, ou estrutura. Começam com um **tipo**, seguido por argumentos opcionais e um **corpo** delimitado por `{}`;
-        ```python
+        ```hcl
         resource "aws_instance" "example" {
             ami = "abc123"
 
@@ -75,7 +76,7 @@ Adicionado o bloco `backend` no arquivo [providers.tf](../app/src/providers.tf)
 - String, Number, Bool, List, Set, Map, Null;
 
 Exemplo de `Expressions`:
-```py
+```hcl
 terraform {
     
     # ...
@@ -91,3 +92,84 @@ No exemplo acima, temos como expressions:
 - `"mybucket-test"`
 - `"path/to/my/bucket"`
 - `"us-east-1`
+
+# Providers
+Os providers são instalados através do registry, e não vem junto ao binário do terraform. A instalação do Provider é instalado a cada execução, e CLI instala o provider na pasta de execução.
+
+Um provider possui diferentes tiers:
+- Official: providers publicados pela hashicorp;
+- Partner: providers criados por parceiros;
+- Community: providers publicados pela comunidade;
+- Archived: providers arquivados/depreciados pela hashicorp;
+
+**Configurando um provider:**
+Existem dois meta-argumentos (que podem ser utilizados em qualquer provider) importantes de conhecer:
+
+`alias`: possibilita utilizar múltiplas configurações do mesmo provider. Por exemplo, ter dois providers da mesma cloud com regiões diferentes:
+```hcl
+provider "aws" {
+    region = "us-east-1"
+}
+
+provider "aws" {
+    alias = "west"
+    region = "us-west-2"
+}
+```
+
+Como usar na prática com `resource`:
+```hcl
+resource "aws_instance" "foo" {
+    provider = aws.west
+}
+```
+Como usar na prática com `module`:
+```hcl
+module "aws_vpc" {
+    source = "./aws_vpc"
+    providers = {
+        aws = aws.west
+    }
+}
+```
+
+# Variables
+Possibilita variar o código que está escrito. Quando fizermos um código com terraform, vamos querer que a implementação utilize diferentes entradas, e para isso são necessários os Variables.
+
+Como declarar variáveis:
+```hcl
+variable "image_id" {
+    type = string
+    description = "O ID da AMI usada"
+    validation {
+        condition = length(var.image_id) > 4 && substr(var.image_id, 0, 4) == "ami-"
+        error_message = "The image_id value must be a valid AMI id, starting with \"ami-\"."
+    }
+    sensitive = true
+}
+```
+- O argumento `type` serve para garantir o tipo do valor que será passado.
+- Argumento `default`, explicado melhor abaixo em como atribuir valor à variáveis.
+- Argumento `description`, para documentar a variável.
+- Argumento `validation` para criar uma validação do valor que está sendo passado, observe o exemplo acima, o `condition` recebe uma condição que é testada. 
+- Argumento `sensitive`, alguns valores podem ser sensíveis e não queremos que caia nos logs.
+- Argumento `nullable`, para definir se a variável pode ser nula ou não.
+
+Como utilizar uma variável: 
+```hcl
+resource "aws_instance" "web" {
+    ami = var.image_id
+    instance_type = "t3.micro"
+}
+```
+
+Dessa forma, criamos a variável, mas não atribuímos valor a ela. Para atribuir valor à uma variável temos 3 formas:
+- Via CLI:
+    - `terraform plan -out plano -var="image_id=ami-123456"`
+- Via argumento `default`:
+    - Passar como argumento `default` na criação da variable;
+    - Se o usuário precisar especificar um valor, não coloque `default`;
+- Via Variable Definitions (`.tfvars`):
+    - Arquivo em que colocamos as variáveis e seus valores;`
+    - Precisa o arquivo ter o nome `terraform.tfvars`, ou qualquer arquivo com `.auto.tfvars`
+- Via variável de ambiente.
